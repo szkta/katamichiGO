@@ -1,7 +1,7 @@
 // ==========================================
 // 設定エリア
 // ==========================================
-const DISCORD_WEBHOOK_URL = 'https://discordapp.com/api/webhooks/1451322157685805178/bauCX4---zhVs3rtDxIQu-TU880DgelNFDMCRZkxhfC_U26359bcb_HaabT-9JBnCXgg'; 
+const DISCORD_WEBHOOK_URL = 'YOUR_DISCORD_WEBHOOK_URL'; 
 
 const TARGET_URL = 'https://cp.toyota.jp/rentacar/'; 
 const TARGET_AREA_ID = '3'; // 関東='3'
