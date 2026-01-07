@@ -5,32 +5,79 @@ const AREA_CONFIG = [
   { 
     name: '東北', 
     id: '2', 
-    webhook: 'https://discordapp.com/api/webhooks/xxxx' // 東北用のWebhook URL
+    webhook: 'https://discordapp.com/api/webhooks/xxxxx' // 東北用のWebhook URL
   },
   { 
     name: '関東', 
     id: '3', 
-    webhook: 'https://discordapp.com/api/webhooks/xxxx' // 関東用のWebhook URL
+    webhook: 'https://discordapp.com/api/webhooks/xxxxx' // 関東用のWebhook URL
   },
   { 
     name: '中部', 
     id: '4', 
-    webhook: 'https://discordapp.com/api/webhooks/xxxx' // 中部用のWebhook URL
+    webhook: 'https://discordapp.com/api/webhooks/xxxxx' // 中部用のWebhook URL
   },
   { 
     name: '近畿', 
     id: '5', 
-    webhook: 'https://discordapp.com/api/webhooks/xxxx' // 近畿用のWebhook URL
+    webhook: 'https://discordapp.com/api/webhooks/xxxxx' // 近畿用のWebhook URL
   }
 ];
 
 // ==========================================
-// 設定エリア 2：レア車専用の設定
+// 設定エリア 2：返却店舗ごとのURL設定（★複数対応）
+// ==========================================
+// 複数のURLを設定したい場合は、{ label: '...', url: '...' } をカンマ区切りで追加します。
+const RETURN_SHOP_URLS = {
+  'トヨタモビリティサービス': [
+    { label: '店舗一覧', url: 'https://discordapp.com/channels/xxxxx' }
+  ],
+  'トヨタS&Dレンタシェア西東京': [
+    { label: '店舗一覧', url: 'https://discordapp.com/channels/xxxxx' }
+  ],
+  'トヨタレンタリース神奈川': [
+    { label: '店舗一覧', url: 'https://discordapp.com/channels/xxxxx' }
+  ],
+  'トヨタレンタリース静岡': [
+    { label: '店舗一覧', url: 'https://discordapp.com/channels/xxxxx' }
+  ],
+  '静岡トヨタ自動車': [
+    { label: '店舗一覧', url: 'https://discordapp.com/channels/xxxxx' }
+  ],
+  'トヨタレンタリース愛知': [
+    { label: '店舗一覧1', url: 'https://discordapp.com/channels/xxxxx' },
+    { label: '店舗一覧2', url: 'https://discordapp.com/channels/xxxxx'}
+  ],
+  'トヨタレンタリース名古屋': [
+    { label: '店舗一覧1', url: 'https://discordapp.com/channels/xxxxx' },
+    { label: '店舗一覧2', url: 'https://discordapp.com/channels/xxxxx' }
+  ],
+  'トヨタレンタリース京都': [
+    { label: '店舗一覧', url: 'https://discordapp.com/channels/xxxxx5' }
+  ],
+  'トヨタレンタリース大阪': [
+    { label: '店舗一覧', url: 'https://discordapp.com/channels/xxxxx' }
+  ],
+  'トヨタレンタリース新大阪': [
+    { label: '店舗一覧', url: 'https://discordapp.com/channels/xxxxx' }
+  ]
+  // その他の県も同様に記述してください
+};
+
+// ==========================================
+// 設定エリア 3：レア車専用の設定
 // ==========================================
 const RARE_CAR_CONFIG = {
-  keywords: ['ハリアー', 'アルファード', 'ヴェルファイア', '86', 'GR86', 'クラウン', 'カローラスポーツ', 'カムリ', 'RAV4', 'LS', 'GS', 'ES', 'IS', 'CT', 'UX', 'LX', 'RX', 'NX', 'LC', 'MIRAI', 'ランドクルーザー', 'bZ4X', 'GRヤリス'],
-  webhook: 'https://discordapp.com/api/webhooks/xxxx', // レア車用のWebhook URL
-  sendToNormalChannelAlso: false 
+  // レア車とみなすキーワード（ここに追加してください）
+  // ※全角カタカナで記入すれば、サイト側が半角でも自動でマッチします
+  keywords: ['ハリアー', 'アルファード', 'ヴェルファイア', '86', 'GR86', 'クラウン', 'カローラスポーツ', 'カムリ', 'RAV4', 'LS', 'GS', 'ES', 'IS', 'CT', 'UX', 'LX', 'RX', 'NX', 'LC', 'MIRAI','ランドクルーザー', 'bZ4X', 'GRヤリス'],
+  
+  // レア車を見つけた時の通知先Webhook
+  webhook: 'https://discordapp.com/api/webhooks/xxxxx',
+  
+  // レア車だった場合、通常のエリア通知にも「重複して」送るかどうか
+  // true: 両方に送る / false: レア車専用チャンネルにだけ送る
+  sendToNormalChannelAlso: true
 };
 
 const TARGET_URL = 'https://cp.toyota.jp/rentacar/'; 
@@ -79,18 +126,24 @@ function checkNewCars() {
         continue;
       }
 
-      // ★修正箇所：車種名から「車両番号」以降を削除する処理を追加
+      // 車種名取得（車両番号削除済み）
       let carNameRaw = extractText(itemHtml, '車種', 'service-item__info__car-type').normalize('NFKC');
       const carName = carNameRaw.replace(/車両番号.*/, '').trim();
 
       const shopName = extractText(itemHtml, '出発<br>店舗', 'service-item__shop-start').normalize('NFKC');
       const returnShopName = extractText(itemHtml, '返却<br>店舗', 'service-item__shop-return').normalize('NFKC');
       const dateRange = extractText(itemHtml, '出発期間', 'service-item__date').normalize('NFKC');
-      
       let reserveTel = extractText(itemHtml, '予約電話番号', 'service-item__reserve-tel').normalize('NFKC').trim();
 
-      // 一意なIDを作る際は、念のため元の長い名前を使っても良いし、短い名前でもOK
-      // ここでは短い名前に変更します
+      // ★追加：返却店舗名に応じたURLリストの取得
+      let returnLinks = [];
+      for (const [key, list] of Object.entries(RETURN_SHOP_URLS)) {
+        if (returnShopName.includes(key)) {
+          returnLinks = list; // 設定されているリスト（配列）をそのまま渡す
+          break; 
+        }
+      }
+
       const uniqueId = `${carName}_${shopName}_${dateRange}`;
 
       if (processedIdsInThisLoop.includes(uniqueId)) {
@@ -109,17 +162,16 @@ function checkNewCars() {
         
         const type = (!previousStatus && currentStatus === 'OPEN') ? 'NEW' : 'SOLD';
         
-        // 通知データ作成（元の完全な情報をログに残したい場合はcarNameRawを使う手もありますが、通知も見やすくするためにcarNameを使います）
         const carData = {
           type: type,
-          car: carNameRaw, // 通知には「車両番号」付きの情報を載せる
+          car: carNameRaw, 
           shop: shopName,
           returnShop: returnShopName,
+          returnLinks: returnLinks, // ★URL情報のリストを保存
           date: dateRange,
           tel: reserveTel
         };
 
-        // 判定にはクリーニング済みの短い名前(carName)を使う
         const isRare = RARE_CAR_CONFIG.keywords.some(keyword => {
           return carName.includes(keyword.normalize('NFKC'));
         });
@@ -191,9 +243,18 @@ function sendDiscordMessage(notifications, webhookUrl, areaName, isRare) {
 
     let carBlock = `━━━━━━━━━━━━━━\n`;
     carBlock += `${icon}\n`;
-    carBlock += `🚗 **車種:** ${note.car}\n`; // ここには車両番号付きの名前が表示されます
+    carBlock += `🚗 **車種:** ${note.car}\n`;
     carBlock += `🛫 **出発:** ${note.shop}\n`;
-    carBlock += `🛬 **返却:** ${note.returnShop}\n`;
+    
+    // ★修正：複数のURLリンクを生成して表示
+    if (note.returnLinks && note.returnLinks.length > 0) {
+      // [{label:'A', url:'...'}, {label:'B', url:'...'}] を [A](url) [B](url) に変換して結合
+      const linksStr = note.returnLinks.map(link => `[${link.label}](${link.url})`).join(' ');
+      carBlock += `🛬 **返却:** ${note.returnShop} (${linksStr})\n`;
+    } else {
+      carBlock += `🛬 **返却:** ${note.returnShop}\n`;
+    }
+
     carBlock += `📅 **期間:** ${note.date}\n`;
     if (note.type === 'NEW') { 
         carBlock += `📞 **TEL:** ${note.tel}\n`; 
